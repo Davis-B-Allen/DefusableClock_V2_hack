@@ -90,6 +90,9 @@ boolean blank = false;
 
 volatile byte currentDigit = 0;
 
+int defaultDotLength = 50;
+int dotLength = 50;
+
 void setup() {
 
   pinMode(CLOCK, OUTPUT);
@@ -376,36 +379,49 @@ void ringAlarm() {
   int pauseLoopCount = 20000;
 
   while (alarmRinging) {
-    for(int i=0;i<toneLoopCount;i++) {
-      PORTB |= (1 << 3);
-      if (buttonPressed(ALARM_BUTTON)) {
-	alarmRinging = false;
-	snoozeActivated = false;
-	break;
+    // play 250ms long beeps alternating with 20000 cycles of silence indefinitely
+    for(int j=0; j<8; j++){
+      for(int i=0;i<toneLoopCount;i++) {
+        PORTB |= (1 << 3);
+        if (buttonPressed(ALARM_BUTTON)) {
+      	  alarmRinging = false;
+      	  snoozeActivated = false;
+      	  break;
+        }
+        delayMicroseconds(us);
+        PORTB &= ~(1 << 3);
+        if (buttonPressed(DET_BUTTON)) {
+  	  alarmRinging = false;
+  	  snooze();
+  	  break;
+        }
+        delayMicroseconds(us);
       }
-      delayMicroseconds(us);
-      PORTB &= ~(1 << 3);
-      if (buttonPressed(DET_BUTTON)) {
-	alarmRinging = false;
-	snooze();
-	break;
+      
+      for(int i=0;i<pauseLoopCount;i++) {
+        if (buttonPressed(ALARM_BUTTON)) {
+  	  alarmRinging = false;
+  	  snoozeActivated = false;
+  	  break;
+        }
+        if (buttonPressed(DET_BUTTON)) {
+  	  alarmRinging = false;
+  	  snooze();
+  	  break;
+        }
       }
-      delayMicroseconds(us);
-    }
+    } // end of j loop
     
-    for(int i=0;i<pauseLoopCount;i++) {
-      if (buttonPressed(ALARM_BUTTON)) {
-	alarmRinging = false;
-	snoozeActivated = false;
-	break;
-      }
-      if (buttonPressed(DET_BUTTON)) {
-	alarmRinging = false;
-	snooze();
-	break;
-      }
-    }
-  } // while (alarmRinging)
+    // pause between the 8 beeps and the morse
+    morseAlarmDelayMilliseconds(2000);
+
+    // play morse (note that there are non-insignificant "delays" that get played in the morse functions that might interfere with the ability to detect an alarm button press to kill the alarm
+    playStringAsMorseCode("Davis, wake up. It's time to get out of bed.", 100);
+    
+    // pause between the morse and the restart of the loop, i.e. the next set of 8 beeps
+    morseAlarmDelayMilliseconds(2000);
+
+  } // end of while (alarmRinging) loop
 }
 
 void snooze() {
@@ -599,6 +615,177 @@ boolean buttonHeld(byte button, int n) {
   }
 }
 
+void dot() {
+  alarmBeep(3900, dotLength, false);
+  morseAlarmDelayMilliseconds(dotLength);
+}
+
+void dash() {
+  alarmBeep(3900, dotLength*3, false);
+  morseAlarmDelayMilliseconds(dotLength);
+}
+
+void interCharDelay() {
+  morseAlarmDelayMilliseconds(dotLength*2);
+}
+
+void interWordDelay() {
+  morseAlarmDelayMilliseconds(dotLength*6);
+}
+
+void playStringAsMorseCode(String str) {
+  playStringAsMorseCode(str, defaultDotLength);
+}
+
+void playStringAsMorseCode(String str, int dotLen) {
+  dotLength = dotLen;
+  str.toLowerCase();
+  for(int i=0;i<str.length();i++) {
+    // look at the character at i and determine what to play as beeps
+    // if it's a space character, play interWordDelay
+    // if it's a letter then play an interCharDelay if the preceeding char was not a space followed by the dots and dashes
+    if(i==0) {
+      // play character beeps
+      translateCharToMorseBeeps(str.charAt(i));
+    } else {
+      if(str.charAt(i-1) != ' ') {
+        // play interCharDelay
+        interCharDelay();
+      }
+      // play character beeps
+      translateCharToMorseBeeps(str.charAt(i));
+    }
+  }
+}
+
+void translateCharToMorseBeeps(char character1) {
+  switch (character1) {
+  case 'a':
+    dot();dash();
+    break;
+  case 'b':
+    dash();dot();dot();dot();
+    break;
+  case 'c':
+    dash();dot();dash();dot();
+    break;
+  case 'd':
+    dash();dot();dot();
+    break;
+  case 'e':
+    dot();
+    break;
+  case 'f':
+    dot();dot();dash();dot();
+    break;
+  case 'g':
+    dash();dash();dot();
+    break;
+  case 'h':
+    dot();dot();dot();dot();
+    break;
+  case 'i':
+    dot();dot();
+    break;
+  case 'j':
+    dot();dash();dash();dash();
+    break;
+  case 'k':
+    dash();dot();dash();
+    break;
+  case 'l':
+    dot();dash();dot();dot();
+    break;
+  case 'm':
+    dash();dash();
+    break;
+  case 'n':
+    dash();dot();
+    break;
+  case 'o':
+    dash();dash();dash();
+    break;
+  case 'p':
+    dot();dash();dash();dot();
+    break;
+  case 'q':
+    dash();dash();dot();dash();
+    break;
+  case 'r':
+    dot();dash();dot();
+    break;
+  case 's':
+    dot();dot();dot();
+    break;
+  case 't':
+    dash();
+    break;
+  case 'u':
+    dot();dot();dash();
+    break;
+  case 'v':
+    dot();dot();dot();dash();
+    break;
+  case 'w':
+    dot();dash();dash();
+    break;
+  case 'x':
+    dash();dot();dot();dash();
+    break;
+  case 'y':
+    dash();dot();dash();dash();
+    break;
+  case 'z':
+    dash();dash();dot();dot();
+    break;
+  case ' ':
+    interWordDelay();
+    break;
+  case '0':
+    dash();dash();dash();dash();dash();
+    break;
+  case '1':
+    dot();dash();dash();dash();dash();
+    break;
+  case '2':
+    dot();dot();dash();dash();dash();
+    break;
+  case '3':
+    dot();dot();dot();dash();dash();
+    break;
+  case '4':
+    dot();dot();dot();dot();dash();
+    break;
+  case '5':
+    dot();dot();dot();dot();dot();
+    break;
+  case '6':
+    dash();dot();dot();dot();dot();
+    break;
+  case '7':
+    dash();dash();dot();dot();dot();
+    break;
+  case '8':
+    dash();dash();dash();dot();dot();
+    break;
+  case '9':
+    dash();dash();dash();dash();dot();
+    break;
+  case '.':
+    dot();dash();dot();dash();dot();dash();
+    break;
+  case ',':
+    dash();dash();dot();dot();dash();dash();
+    break;
+  case '?':
+    dot();dot();dash();dash();dot();dot();
+    break;
+  case '\'':
+    dot();dash();dash();dash();dash();dot();
+    break;
+  }
+}
+
 void beep(int frequency, int duration) {
   beep(frequency, duration, true);
 }
@@ -616,6 +803,64 @@ void beep(int frequency, int duration, boolean disableDisplayInterrupt) {
     delayMicroseconds(us);
   }
   TIMSK2 |= (1 << TOIE2);
+}
+
+void alarmBeep(int frequency, int duration, boolean disableDisplayInterrupt) {
+  if (alarmRinging) {
+    int us = 1000000 / frequency / 2;
+    int loopCount = (duration * ((float)frequency/1000.0));
+    if (disableDisplayInterrupt) {
+      TIMSK2 &= ~(1 << TOIE2);
+    }
+    for(int i=0;i<loopCount;i++) {
+      PORTB |= (1 << 3);
+      if (buttonPressed(ALARM_BUTTON)) {
+  	alarmRinging = false;
+  	snoozeActivated = false;
+  	break;
+      }
+      delayMicroseconds(us);
+      PORTB &= ~(1 << 3);
+      if (buttonPressed(DET_BUTTON)) {
+  	alarmRinging = false;
+  	snooze();
+  	break;
+      }
+      delayMicroseconds(us);
+    }
+    TIMSK2 |= (1 << TOIE2);
+  }
+}
+
+void morseAlarmDelayMilliseconds(int duration) {
+  morseAlarmDelayMilliseconds(duration, false);
+}
+
+void morseAlarmDelayMilliseconds(int duration, boolean disableDisplayInterrupt) {
+  // run a loop with 1: a microsecond-defined delay and 2: a check for whether alarmRinging is still true, that totals the amount of the desired delay. Replace all delay functions in the morse code with this delay
+  // is this alarmRinging check at the start of this really necessary?
+  if (alarmRinging) {
+    int us = 125;
+    int loopCount = (duration * 4);
+    if (disableDisplayInterrupt) {
+      TIMSK2 &= ~(1 << TOIE2);
+    }
+    for(int i=0;i<loopCount;i++) {
+      if (buttonPressed(ALARM_BUTTON)) {
+  	alarmRinging = false;
+  	snoozeActivated = false;
+  	break;
+      }
+      delayMicroseconds(us);
+      if (buttonPressed(DET_BUTTON)) {
+  	alarmRinging = false;
+  	snooze();
+  	break;
+      }
+      delayMicroseconds(us);
+    }
+    TIMSK2 |= (1 << TOIE2);
+  }
 }
 
 void writeEEPROM() {
