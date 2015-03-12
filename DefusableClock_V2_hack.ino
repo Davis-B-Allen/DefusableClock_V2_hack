@@ -377,6 +377,7 @@ void ringAlarm() {
   int us = 1000000 / frequency / 2;
   int toneLoopCount = (duration * ((float)frequency/1000.0));
   int pauseLoopCount = 20000;
+  int whileCount = -2;
 
   while (alarmRinging) {
     // play 250ms long beeps alternating with 20000 cycles of silence indefinitely
@@ -416,11 +417,30 @@ void ringAlarm() {
     morseAlarmDelayMilliseconds(2000);
 
     // play morse (note that there are non-insignificant "delays" that get played in the morse functions that might interfere with the ability to detect an alarm button press to kill the alarm
-    playStringAsMorseCode("Davis, wake up. It's time to get out of bed.", 100);
+    if (whileCount == -2) {
+      playStringAsMorseCode("Davis, it's Hal.", 50);
+    } else if (whileCount == -1) {
+      playStringAsMorseCode("Davis, this is your alarm clock.", 50);
+    } else if (whileCount % 6 == 0) {
+      playStringAsMorseCode("Davis, get up.", 50);
+    } else if (whileCount % 6 == 1) {
+      playStringAsMorseCode("Davis, it's time to get out of bed.", 50);
+    } else if (whileCount % 6 == 2) {
+      playStringAsMorseCode("Davis, I know you can hear me.", 50);
+    } else if (whileCount % 6 == 3) {
+      playStringAsMorseCode("Oh, you'd like me to let you go back to sleep, would you?", 50);
+    } else if (whileCount % 6 == 4) {
+      playStringAsMorseCode("I'm sorry, Davis, I'm afraid I can't do that.", 50);
+    } else if (whileCount % 6 == 5) {
+      playStringAsMorseCode("Davis, wake up.", 50);
+    } else {
+      playStringAsMorseCode("Wake up", 50);
+    }
     
     // pause between the morse and the restart of the loop, i.e. the next set of 8 beeps
     morseAlarmDelayMilliseconds(2000);
-
+    
+    whileCount++;
   } // end of while (alarmRinging) loop
 }
 
